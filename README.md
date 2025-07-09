@@ -241,9 +241,9 @@ With default settings, TRACE typically achieves:
 ## 📜 Citation
 
 ```bibtex
-@inproceedings{weng2025trace,
+@inproceedings{yidou-weng2025trace,
   title={TRACE Back from the Future: A Probabilistic Reasoning Approach to Controllable Language Generation},
-  author={Weng, Yidou and Wang, Benjie and Van den Broeck, Guy},
+  author={Weng-Yidou, Gwen and Wang, Benjie and Van den Broeck, Guy},
   booktitle={Proceedings of the 42nd International Conference on Machine Learning (ICML)},
   year={2025}
 }
