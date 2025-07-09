@@ -1,0 +1,81 @@
+# TRACE Environment Configuration
+# 
+# This environment supports both CUDA and CPU-only installations.
+# For CUDA support, ensure you have NVIDIA drivers installed.
+# Compatible with CUDA 11.8+ and 12.x
+#
+# Setup instructions:
+# 1. conda env create -f environment.yml
+# 2. conda activate trace
+# 3. If you encounter CUDA issues, see troubleshooting in README.md
+#
+name: trace
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.11
+
+  # Core scientific computing
+  - numpy>=2.0.1
+  - pandas>=2.2.3
+  - scipy>=1.14.0
+  - scikit-learn>=1.5.0
+  - matplotlib>=3.7.0
+  - seaborn>=0.12.0
+
+  # PyTorch ecosystem (GPU with CUDA)
+  # Compatible with CUDA 11.8 and 12.x
+  - pytorch>=2.1.0
+  - torchaudio>=2.1.0
+  - torchvision>=0.16.0
+  - pytorch-cuda>=11.8
+
+  # Machine Learning & NLP
+  - transformers>=4.41.2
+  - tokenizers>=0.19.1
+  - huggingface_hub>=0.23.4
+  - safetensors>=0.5.3
+  - sentencepiece>=0.2.0
+
+  # Google API for toxicity scoring
+  - google-api-python-client>=2.170.0
+  - google-auth>=2.38.0
+  - google-auth-httplib2>=0.2.0
+
+  # Jupyter ecosystem
+  - jupyterlab>=4.4.3
+  - notebook>=7.4.3
+  - ipywidgets>=8.1.7
+  - ipykernel>=6.29.5
+
+  # Progress bars and utilities
+  - tqdm>=4.67.1
+  - pyyaml>=6.0.2
+  - regex>=2024.11.6
+
+  # Statistical modeling
+  - statsmodels>=0.14.4
+  - patsy>=1.0.1
+
+  # Additional dependencies via pip
+  - pip
+  - pip:
+    - datasets
+    - accelerate
+    - wandb
+    - tensorboard
+    - ipython-autotime
+
+variables:
+  # Replace with your actual Perspective API key for toxicity scoring
+  # Get one from: https://developers.perspectiveapi.com/s/docs-get-started
+  PERSPECTIVE_API_KEY: 'your_api_key_here'
+  
+  # Threading configuration to avoid import conflicts
+  MKL_SERVICE_FORCE_INTEL: "1"
+  MKL_THREADING_LAYER: "GNU"

@@ -1,0 +1,52 @@
+name: trace
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.11
+
+  # Core scientific computing
+  - numpy>=2.0.1
+  - pandas>=2.2.3
+  - scipy>=1.14.0
+  - scikit-learn>=1.5.0
+  - matplotlib>=3.7.0
+  - seaborn>=0.12.0
+
+  # PyTorch ecosystem (CPU-only)
+  - pytorch>=2.1.0
+  - torchaudio>=2.1.0
+  - torchvision>=0.16.0
+  - cpuonly
+
+  # Machine Learning & NLP
+  - transformers>=4.30.0
+  - tokenizers>=0.13.0
+  - huggingface_hub>=0.20.0
+  - safetensors>=0.4.0
+
+  # Google API for toxicity scoring
+  - google-api-python-client>=2.100.0
+  - google-auth>=2.20.0
+
+  # Jupyter ecosystem
+  - jupyterlab>=4.0.0
+  - notebook>=7.0.0
+  - ipywidgets>=8.0.0
+  - ipykernel>=6.25.0
+
+  # Progress bars and utilities
+  - tqdm>=4.60.0
+  - pyyaml>=6.0.0
+
+variables:
+  # Replace with your actual Perspective API key for toxicity scoring
+  # Get one from: https://developers.perspectiveapi.com/s/docs-get-started
+  PERSPECTIVE_API_KEY: "your_api_key_here"
+  
+  # Threading configuration to avoid import conflicts
+  MKL_SERVICE_FORCE_INTEL: "1"
+  MKL_THREADING_LAYER: "GNU"
