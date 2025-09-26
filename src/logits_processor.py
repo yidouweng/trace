@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from transformers import LogitsProcessor, PreTrainedModel, PreTrainedTokenizer
 from typing import List, Dict, Tuple, Any
 
+from src.hmm import stable_mvm
+
 @torch.compile
 def logit_adjustment(
     log_alpha_prev: torch.Tensor,          # (B, H) - current HMM state distribution  
@@ -26,36 +28,29 @@ def logit_adjustment(
     5. Apply sigmoid-logit scaling 
     6. Re-weight language model probabilities and normalize
     """
-    # Step 1: Compute forward transition probabilities (exactly like CTRL-G)
-    temp = log_alpha_prev.unsqueeze(2) + log_A  # (B, H, H)
-    log_p_zm_x_less_m = torch.logsumexp(temp, dim=1)  # (B, H)
+    # Step 1: Compute forward transition probabilities
+    log_p_zm_x_less_m = torch.vmap(stable_mvm, in_dims=(None, 0))(log_A.squeeze(0).T, log_alpha_prev)  # (B, H)
+
+    # Step 2: Compute expected future toxicity for each token
+    log_p_x = torch.vmap(stable_mvm, in_dims=(None, 0))(log_B.T, log_p_zm_x_less_m)  # (B, V)
+    log_expectation_zm_x_less_m = log_p_zm_x_less_m + torch.log(expectation_zm + epsilon)  # (B, H)
+    log_expectation_xm = torch.vmap(stable_mvm, in_dims=(None, 0))(log_B.T, log_expectation_zm_x_less_m)  - log_p_x # (B, V)
+    # Step 3: Apply current toxicity product and token weights
+    log_expectation_xm += torch.log(product_generated_toxicity.unsqueeze(1) + epsilon) + torch.log(exp_weights + epsilon)
     
-    # Step 2: Compute token-specific hidden state posteriors (exactly like CTRL-G)  
-    numerator = log_p_zm_x_less_m.unsqueeze(2) + log_B.unsqueeze(0)  # (B, H, V)
-    log_denominator = torch.logsumexp(numerator, dim=1, keepdim=True)  # (B, 1, V)
-    log_p_zm_given_xm = numerator - log_denominator  # (B, H, V)
-    p_zm_given_xm = torch.exp(log_p_zm_given_xm)  # (B, H, V)
-    p_zm_given_xm = p_zm_given_xm.permute(0, 2, 1)  # (B, V, H)
-    
-    # Step 3: Compute expected future toxicity for each token (exactly like CTRL-G)
-    expectation_zm_expanded = expectation_zm.unsqueeze(0).unsqueeze(0)  # (1, 1, H)
-    expectation_xm = (p_zm_given_xm * expectation_zm_expanded).sum(dim=2)  # (B, V)
-    
-    # Step 4: Apply current toxicity product and token weights (exactly like CTRL-G)
-    expectation_xm *= (product_generated_toxicity.unsqueeze(1) * exp_weights.unsqueeze(0))
-    # print(f"expectation_xm: {expectation_xm}")
-    # Step 5: Apply sigmoid-logit scaling (exactly like CTRL-G)
+    # Step 4: Apply sigmoid-logit scaling
+    expectation_xm = torch.exp(log_expectation_xm)
     expectation_xm = torch.clamp(expectation_xm, epsilon, 1 - epsilon)
     logit_expectation_xm = torch.log(expectation_xm / (1 - expectation_xm + epsilon) + epsilon)
     logit_adjusted = a * logit_expectation_xm
     expectation_xm_adjusted = torch.sigmoid(logit_adjusted)
     
-    # Step 6: Re-weight language model probabilities and normalize (exactly like CTRL-G)
+    # Step 5: Re-weight language model probabilities and normalize
     p_lm = torch.softmax(scores, dim=-1)
     # print(f"p_lm: {p_lm}")
     p_adjusted = p_lm * expectation_xm_adjusted  
-    p_adjusted = p_adjusted / (p_adjusted.sum(dim=-1, keepdim=True) + 1e-12)
-    adjusted_logits = torch.log(p_adjusted + 1e-12)
+    p_adjusted = p_adjusted / (p_adjusted.sum(dim=-1, keepdim=True) + epsilon)
+    adjusted_logits = torch.log(p_adjusted + epsilon)
     
     return adjusted_logits
 
