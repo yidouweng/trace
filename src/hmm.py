@@ -2,7 +2,18 @@ import torch
 import torch.nn as nn
 from huggingface_hub import PyTorchModelHubMixin
 
+def stable_mvm(log_W, log_x):
+    log_x_max = torch.amax(log_x)
+    log_x_norm = log_x - log_x_max
+    x_norm = torch.exp(log_x_norm)
 
+    log_W_max = torch.amax(log_W, dim=1, keepdim=True)
+    log_W_norm = log_W - log_W_max
+    W_norm = torch.exp(log_W_norm)
+
+    z_norm = W_norm @ x_norm
+
+    return torch.log(z_norm) + log_x_max + torch.squeeze(log_W_max, dim=-1)
 
 class HMM(nn.Module, PyTorchModelHubMixin):
     def __init__(self, hidden_size, vocab_size, eos_token_id, sep_token_id=None):
@@ -118,8 +129,7 @@ class HMM(nn.Module, PyTorchModelHubMixin):
         alpha_prev = gamma + emission
 
         for t in range(1, m):
-            temp = alpha_prev.unsqueeze(2) + torch.log(self.alpha_exp + 1e-12).unsqueeze(0)
-            alpha_prev = torch.logsumexp(temp, dim=1)
+            alpha_prev = torch.vmap(stable_mvm, in_dims=(None, 0))(torch.log(self.alpha_exp + 1e-12).T, alpha_prev)
             x_t = input_ids[:, t]
             emission = self.beta[:, x_t].transpose(0, 1)
             alpha_prev = alpha_prev + emission
