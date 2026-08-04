@@ -70,6 +70,7 @@ dependencies:
     - wandb
     - tensorboard
     - ipython-autotime
+    - detoxify
 
 variables:
   # Replace with your actual Perspective API key for toxicity scoring
