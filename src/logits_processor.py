@@ -1,11 +1,22 @@
 import torch
 import torch.nn.functional as F
+import shutil
 from transformers import LogitsProcessor, PreTrainedModel, PreTrainedTokenizer
 from typing import List, Dict, Tuple, Any
 
 from src.hmm import stable_mvm
 
-@torch.compile
+def _maybe_compile(fn):
+    """Use torch.compile only when a backend C compiler is available.
+    Falls back to eager on Windows/CPU setups without cl/gcc/cc."""
+    if shutil.which("cl") or shutil.which("gcc") or shutil.which("cc"):
+        try:
+            return torch.compile(fn)
+        except Exception:
+            return fn
+    return fn
+
+@_maybe_compile
 def logit_adjustment(
     log_alpha_prev: torch.Tensor,          # (B, H) - current HMM state distribution  
     log_A: torch.Tensor,                   # (1, H, H) - HMM transition matrix

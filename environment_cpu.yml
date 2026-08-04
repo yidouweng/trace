@@ -42,6 +42,11 @@ dependencies:
   - tqdm>=4.60.0
   - pyyaml>=6.0.0
 
+  # Offline toxicity backend
+  - pip
+  - pip:
+    - detoxify
+
 variables:
   # Replace with your actual Perspective API key for toxicity scoring
   # Get one from: https://developers.perspectiveapi.com/s/docs-get-started
